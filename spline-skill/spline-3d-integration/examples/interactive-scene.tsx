@@ -63,17 +63,20 @@ export default function InteractiveSplineScene() {
         );
 
         // ─── Event Listeners ─────────────────────────────────────
-        app.addEventListener('mouseDown', (e: any) => {
-            console.log('Clicked:', e.target.name);
-            setActiveObject(e.target.name);
+        // ✅ FIXED: Use correct Spline event signature
+        app.addEventListener('mouseDown' as SplineEventName, (e: any) => {
+            // Spline events pass the object directly, not e.target
+            const objectName = e.name || e.toString();
+            console.log('Clicked:', objectName);
+            setActiveObject(objectName);
 
             // Example: Increment score when a specific object is clicked
-            if (e.target.name === 'Coin') {
+            if (e.name === 'Coin') {
                 setScore((prev) => prev + 1);
             }
         });
 
-        app.addEventListener('mouseHover', (e: any) => {
+        app.addEventListener('mouseHover' as SplineEventName, (e: any) => {
             // Change cursor on hover
             document.body.style.cursor = 'pointer';
         });
@@ -82,9 +85,13 @@ export default function InteractiveSplineScene() {
         // (mouseHover only fires when over an interactive object)
         const canvas = document.querySelector('canvas');
         canvas?.addEventListener('mousemove', () => {
-            // This fires on every mouse move over the canvas.
-            // The Spline mouseHover event will override cursor when
-            // hovering an interactive object.
+            // Reset cursor - Spline mouseHover event will override when hovering objects
+            document.body.style.cursor = 'default';
+        });
+
+        // Optional: Add mouseUp event listener for better interactivity
+        app.addEventListener('mouseUp' as SplineEventName, () => {
+            document.body.style.cursor = 'default';
         });
     }, []);
 
@@ -224,7 +231,16 @@ export default function InteractiveSplineScene() {
                             color: '#fff',
                             cursor: 'pointer',
                             marginRight: 8,
+                            transition: 'background 0.2s ease',
                         }}
+                        onMouseEnter={(e) =>
+                        (e.currentTarget.style.background =
+                            'rgba(255,255,255,0.2)')
+                        }
+                        onMouseLeave={(e) =>
+                        (e.currentTarget.style.background =
+                            'rgba(255,255,255,0.1)')
+                        }
                     >
                         ▶ Play
                     </button>
@@ -237,7 +253,16 @@ export default function InteractiveSplineScene() {
                             borderRadius: 6,
                             color: '#fff',
                             cursor: 'pointer',
+                            transition: 'background 0.2s ease',
                         }}
+                        onMouseEnter={(e) =>
+                        (e.currentTarget.style.background =
+                            'rgba(255,255,255,0.2)')
+                        }
+                        onMouseLeave={(e) =>
+                        (e.currentTarget.style.background =
+                            'rgba(255,255,255,0.1)')
+                        }
                     >
                         ↺ Reset
                     </button>
