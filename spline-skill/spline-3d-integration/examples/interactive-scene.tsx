@@ -23,7 +23,7 @@ import React, {
     useEffect,
     useCallback,
 } from 'react';
-import type { Application, SplineEventName } from '@splinetool/runtime';
+import type { Application } from '@splinetool/runtime';
 
 // ─── Lazy load the heavy Spline runtime ──────────────────────────
 const Spline = lazy(() => import('@splinetool/react-spline'));
@@ -49,56 +49,60 @@ export default function InteractiveSplineScene() {
     }, []);
 
     // ─── Scene loaded callback ───────────────────────────────────
-    const handleLoad = useCallback((app: Application) => {
-        splineRef.current = app;
+    // ✅ FIXED: Correct callback signature for Spline onLoad
+    const handleLoad = useCallback((splineApp: any): void => {
+        splineRef.current = splineApp;
         setIsLoaded(true);
 
         console.log('Scene loaded!');
 
         // List all objects (useful for debugging)
-        const objects = app.getAllObjects();
+        const objects = splineApp.getAllObjects();
         console.log(
             'Scene objects:',
             objects.map((o: any) => o.name)
         );
 
         // ─── Event Listeners ─────────────────────────────────────
-        // ✅ FIXED: Use correct Spline event signature
-        app.addEventListener('mouseDown' as SplineEventName, (e: any) => {
-            // Spline events pass the object directly, not e.target
-            const objectName = e.name || e.toString();
+        // ✅ FIXED: Correct event listener signature
+        splineApp.addEventListener('mouseDown', (event: any): void => {
+            const objectName = event?.name || 'Unknown';
             console.log('Clicked:', objectName);
             setActiveObject(objectName);
 
             // Example: Increment score when a specific object is clicked
-            if (e.name === 'Coin') {
+            if (event?.name === 'Coin') {
                 setScore((prev) => prev + 1);
             }
         });
 
-        app.addEventListener('mouseHover' as SplineEventName, (e: any) => {
+        splineApp.addEventListener('mouseHover', (): void => {
             // Change cursor on hover
             document.body.style.cursor = 'pointer';
         });
 
-        // Reset cursor when not hovering any object
-        // (mouseHover only fires when over an interactive object)
-        const canvas = document.querySelector('canvas');
-        canvas?.addEventListener('mousemove', () => {
-            // Reset cursor - Spline mouseHover event will override when hovering objects
+        splineApp.addEventListener('mouseUp', (): void => {
+            // Reset cursor
             document.body.style.cursor = 'default';
         });
 
-        // Optional: Add mouseUp event listener for better interactivity
-        app.addEventListener('mouseUp' as SplineEventName, () => {
-            document.body.style.cursor = 'default';
-        });
+        // Reset cursor when not hovering any object
+        const canvas = document.querySelector('canvas');
+        if (canvas) {
+            canvas.addEventListener('mousemove', () => {
+                // Optional: Additional cursor handling
+            });
+        }
     }, []);
 
     // ─── Sync React state → Spline variables ─────────────────────
     useEffect(() => {
         if (splineRef.current && isLoaded) {
-            splineRef.current.setVariable('score', score);
+            try {
+                splineRef.current.setVariable('score', score);
+            } catch (error) {
+                console.warn('Could not set Spline variable:', error);
+            }
         }
     }, [score, isLoaded]);
 
@@ -106,12 +110,16 @@ export default function InteractiveSplineScene() {
     useEffect(() => {
         if (!isLoaded || !splineRef.current) return;
 
-        const handleScroll = () => {
+        const handleScroll = (): void => {
             const maxScroll = document.body.scrollHeight - window.innerHeight;
             if (maxScroll <= 0) return;
 
             const progress = Math.min(window.scrollY / maxScroll, 1);
-            splineRef.current?.setVariable('scrollProgress', progress);
+            try {
+                splineRef.current?.setVariable('scrollProgress', progress);
+            } catch (error) {
+                console.warn('Could not set scroll variable:', error);
+            }
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
@@ -119,18 +127,26 @@ export default function InteractiveSplineScene() {
     }, [isLoaded]);
 
     // ─── External controls ───────────────────────────────────────
-    const triggerEvent = (eventType: SplineEventName, objectName: string) => {
+    const triggerEvent = (eventName: string, objectName: string): void => {
         if (splineRef.current) {
-            splineRef.current.emitEvent(eventType, objectName);
+            try {
+                splineRef.current.emitEvent(eventName, objectName);
+            } catch (error) {
+                console.warn('Could not emit event:', error);
+            }
         }
     };
 
-    const resetScene = () => {
+    const resetScene = (): void => {
         setScore(0);
         setActiveObject(null);
         if (splineRef.current) {
-            splineRef.current.setVariable('score', 0);
-            splineRef.current.emitEvent('mouseDown', 'ResetButton');
+            try {
+                splineRef.current.setVariable('score', 0);
+                splineRef.current.emitEvent('mouseDown', 'ResetButton');
+            } catch (error) {
+                console.warn('Could not reset scene:', error);
+            }
         }
     };
 
