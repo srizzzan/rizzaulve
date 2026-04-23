@@ -23,21 +23,10 @@ import React, {
     useEffect,
     useCallback,
 } from 'react';
+import type { Application, SplineEventName } from '@splinetool/runtime';
 
 // ─── Lazy load the heavy Spline runtime ──────────────────────────
 const Spline = lazy(() => import('@splinetool/react-spline'));
-
-// ─── Types ───────────────────────────────────────────────────────
-interface SplineApp {
-    findObjectByName: (name: string) => any;
-    findObjectById: (id: string) => any;
-    getAllObjects: () => any[];
-    addEventListener: (event: string, callback: (e: any) => void) => void;
-    removeEventListener: (event: string, callback: (e: any) => void) => void;
-    emitEvent: (event: string, objectName: string) => void;
-    getVariable: (name: string) => any;
-    setVariable: (name: string, value: any) => void;
-}
 
 // ─── Configuration ───────────────────────────────────────────────
 const SCENE_URL = 'https://prod.spline.design/YOUR_SCENE_ID/scene.splinecode';
@@ -45,7 +34,7 @@ const MOBILE_FALLBACK_IMAGE = '/images/scene-fallback.png'; // Optional
 
 // ─── Main Component ──────────────────────────────────────────────
 export default function InteractiveSplineScene() {
-    const splineRef = useRef<SplineApp | null>(null);
+    const splineRef = useRef<Application | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
     const [activeObject, setActiveObject] = useState<string | null>(null);
@@ -60,7 +49,7 @@ export default function InteractiveSplineScene() {
     }, []);
 
     // ─── Scene loaded callback ───────────────────────────────────
-    const handleLoad = useCallback((app: SplineApp) => {
+    const handleLoad = useCallback((app: Application) => {
         splineRef.current = app;
         setIsLoaded(true);
 
@@ -123,7 +112,7 @@ export default function InteractiveSplineScene() {
     }, [isLoaded]);
 
     // ─── External controls ───────────────────────────────────────
-    const triggerEvent = (eventType: string, objectName: string) => {
+    const triggerEvent = (eventType: SplineEventName, objectName: string) => {
         if (splineRef.current) {
             splineRef.current.emitEvent(eventType, objectName);
         }
